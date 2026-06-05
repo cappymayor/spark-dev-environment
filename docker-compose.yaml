@@ -1,0 +1,38 @@
+services:
+  spark-master:
+    image: apache/spark:latest
+    container_name: spark-master
+    hostname: spark-master
+    ports:
+      - "8080:8080" # Master Web UI
+      - "7077:7077" # Spark Master Communication
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    volumes:
+      - ./data:/opt/spark/data
+
+  spark-worker:
+    image: apache/spark:latest
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+    volumes:
+      - ./data:/opt/spark/data
+
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: jupyter-node
+    ports:
+      - "8888:8888" # Jupyter Interface
+      - "4040:4040" # Spark Driver UI
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=""          # Bypasses the token requirement
+      - JUPYTER_PASSWORD=""       # Bypasses the password requirement
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+    volumes:
+      - ./notebook-work:/home/jovyan/notebook-work
+      - ./data:/home/jovyan/data
